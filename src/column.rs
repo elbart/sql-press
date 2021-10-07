@@ -119,7 +119,7 @@ pub fn varchar(name: &str, size: Option<usize>) -> ColumnAddBuilder {
     ColumnAddBuilder::new(name, ColumnType::VARCHAR(size.unwrap_or(255)))
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ColumnType {
     UUID,
     VARCHAR(usize),
@@ -194,5 +194,67 @@ impl ColumnAlter for Table {
             ct: new_column_type,
             conversion_method,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::column;
+
+    fn get_downcasted_column_change<C: Change>(table: &Table, idx: usize) -> &C {
+        table
+            .changes
+            .get(idx)
+            .unwrap()
+            .as_any()
+            .downcast_ref::<C>()
+            .unwrap()
+    }
+
+    #[test]
+    fn column_add_change() {
+        let mut t = Table::default();
+        column::ColumnCreate::add_column(&mut t, uuid("id").primary(true).build());
+        column::ColumnCreate::add_column(&mut t, uuid("id2").primary(false).build());
+        column::ColumnAlter::add_column(&mut t, varchar("id2", None).build());
+        assert!(t.changes.len() == 3);
+
+        let col = get_downcasted_column_change::<ColumnAddChange>(&t, 0);
+        let col2 = get_downcasted_column_change::<ColumnAddChange>(&t, 2);
+        assert!(col.with_prefix == false);
+        assert!(col2.with_prefix == true);
+    }
+
+    #[test]
+    fn column_alter_change() {
+        let mut t = Table::default();
+        column::ColumnAlter::add_column(&mut t, varchar("id2", None).build());
+        column::ColumnAlter::alter_column(&mut t, "id2", ColumnType::UUID, None);
+        column::ColumnAlter::rename_column(&mut t, "id2", "id3");
+        assert!(t.changes.len() == 3);
+
+        let col = get_downcasted_column_change::<ColumnAddChange>(&t, 0);
+        let col2 = get_downcasted_column_change::<ColumnAlterChange>(&t, 1);
+        let col3 = get_downcasted_column_change::<ColumnRenameChange>(&t, 2);
+
+        assert!(col.ct == ColumnType::VARCHAR(255));
+        assert!(col2.ct == ColumnType::UUID);
+        assert!(col3.new_name == "id3".to_string());
+    }
+
+    #[test]
+    fn column_drop_change() {
+        let mut t = Table::default();
+        column::ColumnDrop::drop_column(&mut t, "test");
+        column::ColumnDrop::drop_column_if_exists(&mut t, "test");
+        assert!(t.changes.len() == 2);
+
+        let col = get_downcasted_column_change::<ColumnDropChange>(&t, 0);
+        let col2 = get_downcasted_column_change::<ColumnDropChange>(&t, 1);
+        assert!(col.if_exists == false);
+        assert!(col.name == "test".to_string());
+        assert!(col2.if_exists == true);
+        assert!(col2.name == "test".to_string());
     }
 }

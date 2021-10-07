@@ -3,11 +3,21 @@ use crate::{
     sql_dialect::SqlDialect,
     table::{Table, TableChange, TableChangeOp},
 };
-use std::{fmt::Debug, rc::Rc};
+use std::{any::Any, fmt::Debug, rc::Rc};
 
 pub(crate) type Changes = Vec<Box<dyn Change>>;
 
-pub trait Change: Debug {
+pub trait ChangeToAny: 'static {
+    fn as_any(&self) -> &dyn Any;
+}
+
+impl<T: 'static> ChangeToAny for T {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+pub trait Change: Debug + ChangeToAny {
     fn get_ddl(&self, dialect: Rc<dyn SqlDialect>) -> String;
 }
 
@@ -108,8 +118,8 @@ mod tests {
             t.add_column(varchar("description", None).build())
         });
 
-        let d = Rc::new(Postgres {});
-        println!("{}", cs.get_ddl(d));
+        let _d = Rc::new(Postgres {});
+        // println!("{}", cs.get_ddl(d));
     }
 
     #[test]
@@ -130,8 +140,8 @@ mod tests {
             );
         });
 
-        let d = Rc::new(Postgres {});
-        println!("{}", cs.get_ddl(d));
+        let _d = Rc::new(Postgres {});
+        // println!("{}", cs.get_ddl(d));
     }
 
     #[test]
@@ -140,8 +150,8 @@ mod tests {
 
         cs.rename_table("tags", "tag");
 
-        let d = Rc::new(Postgres {});
-        println!("{}", cs.get_ddl(d));
+        let _d = Rc::new(Postgres {});
+        // println!("{}", cs.get_ddl(d));
     }
 
     #[test]
@@ -150,7 +160,7 @@ mod tests {
 
         cs.drop_table("tag");
 
-        let d = Rc::new(Postgres {});
-        println!("{}", cs.get_ddl(d));
+        let _d = Rc::new(Postgres {});
+        // println!("{}", cs.get_ddl(d));
     }
 }
