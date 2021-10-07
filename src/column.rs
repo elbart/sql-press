@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::change::{Change, SqlDialect};
+use crate::{change::Change, sql_dialect::SqlDialect, table::Table};
 
 #[derive(Debug, Clone)]
 pub enum ColumnChangeOp {
@@ -40,13 +40,27 @@ impl Change for ColumnRenameChange {
 }
 
 #[derive(Debug)]
+pub struct ColumnAlterChange {
+    pub(crate) name: String,
+    pub(crate) ct: ColumnType,
+    pub(crate) conversion_method: Option<String>,
+}
+
+impl Change for ColumnAlterChange {
+    fn get_ddl(&self, dialect: Rc<dyn SqlDialect>) -> String {
+        dialect.alter_column(&self.name, &self.ct, self.conversion_method.as_deref())
+    }
+}
+
+#[derive(Debug)]
 pub struct ColumnDropChange {
     pub(crate) name: String,
+    pub(crate) if_exists: bool,
 }
 
 impl Change for ColumnDropChange {
     fn get_ddl(&self, dialect: Rc<dyn SqlDialect>) -> String {
-        dialect.drop_column(&self.name)
+        dialect.drop_column(&self.name, self.if_exists)
     }
 }
 
@@ -109,4 +123,76 @@ pub fn varchar(name: &str, size: Option<usize>) -> ColumnAddBuilder {
 pub enum ColumnType {
     UUID,
     VARCHAR(usize),
+}
+
+pub trait ColumnCreate {
+    fn add_column(&mut self, column: ColumnAddChange);
+}
+
+pub trait ColumnDrop {
+    fn drop_column(&mut self, name: &str);
+    fn drop_column_if_exists(&mut self, name: &str);
+}
+
+impl ColumnCreate for Table {
+    fn add_column(&mut self, column: ColumnAddChange) {
+        self.changes.push(Box::new(column));
+    }
+}
+
+impl ColumnDrop for Table {
+    fn drop_column(&mut self, name: &str) {
+        self.changes.push(Box::new(ColumnDropChange {
+            name: name.into(),
+            if_exists: false,
+        }))
+    }
+
+    fn drop_column_if_exists(&mut self, name: &str) {
+        self.changes.push(Box::new(ColumnDropChange {
+            name: name.into(),
+            if_exists: true,
+        }))
+    }
+}
+
+pub trait ColumnAlter: ColumnDrop {
+    fn add_column(&mut self, column: ColumnAddChange);
+
+    fn rename_column(&mut self, column_name: &str, new_column_name: &str);
+
+    fn alter_column(
+        &mut self,
+        column_name: &str,
+        new_column_type: ColumnType,
+        conversion_method: Option<String>,
+    );
+}
+
+impl ColumnAlter for Table {
+    fn add_column(&mut self, column: ColumnAddChange) {
+        let mut alter_column = column;
+        alter_column.with_prefix = true;
+        self.changes.push(Box::new(alter_column));
+    }
+
+    fn rename_column(&mut self, name: &str, new_name: &str) {
+        self.changes.push(Box::new(ColumnRenameChange {
+            name: name.into(),
+            new_name: new_name.into(),
+        }))
+    }
+
+    fn alter_column(
+        &mut self,
+        column_name: &str,
+        new_column_type: ColumnType,
+        conversion_method: Option<String>,
+    ) {
+        self.changes.push(Box::new(ColumnAlterChange {
+            name: column_name.into(),
+            ct: new_column_type,
+            conversion_method,
+        }))
+    }
 }
