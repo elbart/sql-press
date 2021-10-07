@@ -110,7 +110,7 @@ impl SqlDialect for Postgres {
         idx_name: Option<String>,
     ) -> String {
         format!(
-            "{}FOREIGN KEY \"{}\" REFERENCES {}(\"{}\");",
+            "{}FOREIGN KEY(\"{}\") REFERENCES {}(\"{}\")",
             idx_name
                 .map(|x| format!("CONSTRAINT {} ", x))
                 .unwrap_or_else(|| "".into()),
@@ -244,14 +244,14 @@ mod tests {
         let ddl = d.add_foreign_index("blubb_id", "blubb", "id", None);
         assert_eq!(
             ddl,
-            format!("FOREIGN KEY \"blubb_id\" REFERENCES blubb(\"id\");")
+            format!("FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")")
         );
 
         let ddl = d.add_foreign_index("blubb_id", "blubb", "id", Some("fk_blubb_blubb_id".into()));
         assert_eq!(
             ddl,
             format!(
-                "CONSTRAINT fk_blubb_blubb_id FOREIGN KEY \"blubb_id\" REFERENCES blubb(\"id\");"
+                "CONSTRAINT fk_blubb_blubb_id FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")"
             )
         );
     }
