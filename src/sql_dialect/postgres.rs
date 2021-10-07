@@ -39,18 +39,14 @@ impl SqlDialect for Postgres {
         name: &str,
         with_prefix: bool,
         ct: &ColumnType,
-        _constraints: &Constraints,
+        constraints: &Constraints,
     ) -> String {
-        let t = match ct {
-            ColumnType::VARCHAR(s) => format!("VARCHAR({})", s),
-            ColumnType::UUID => "uuid".into(),
-        };
-
         format!(
-            "{}\"{}\" {}",
+            "{}\"{}\" {}{}",
             with_prefix.then(|| "ADD COLUMN ").unwrap_or(""),
             name,
-            &t
+            self.column_type(ct),
+            self.constraints(constraints)
         )
     }
 
@@ -59,14 +55,10 @@ impl SqlDialect for Postgres {
     }
 
     fn alter_column(&self, name: &str, ct: &ColumnType, conversion_method: Option<&str>) -> String {
-        let t = match ct {
-            ColumnType::VARCHAR(s) => format!("VARCHAR({})", s),
-            ColumnType::UUID => "uuid".into(),
-        };
         format!(
             "ALTER COLUMN \"{}\" TYPE {}{}",
             name,
-            &t,
+            self.column_type(ct),
             conversion_method
                 .map(|u| format!(" USING {}", u))
                 .unwrap_or_else(|| "".into())
@@ -79,6 +71,31 @@ impl SqlDialect for Postgres {
             if_exists.then(|| "IF EXISTS ").unwrap_or(""),
             name
         )
+    }
+
+    fn column_type(&self, ct: &ColumnType) -> String {
+        match ct {
+            ColumnType::UUID => "uuid".into(),
+            ColumnType::VARCHAR(s) => format!("VARCHAR({})", s),
+        }
+    }
+
+    fn constraints(&self, constraints: &Constraints) -> String {
+        let c = vec![
+            constraints.primary.then(|| "PRIMARY KEY").unwrap_or(""),
+            constraints.not_null.then(|| "NOT NULL").unwrap_or(""),
+            constraints.unique.then(|| "UNIQUE").unwrap_or(""),
+        ]
+        .join(" ");
+
+        let c = c.trim();
+
+        if c.len() > 0 {
+            // prefix with a space
+            format!(" {}", c)
+        } else {
+            "".into()
+        }
     }
 }
 
@@ -137,6 +154,18 @@ mod tests {
 
         let ddl = d.add_column("id", true, &ColumnType::UUID, &Constraints::new());
         assert_eq!(ddl, format!("ADD COLUMN \"id\" uuid"));
+
+        let mut constraints = Constraints::new();
+        constraints.primary = true;
+        let ddl = d.add_column("id", true, &ColumnType::UUID, &constraints);
+        assert_eq!(ddl, format!("ADD COLUMN \"id\" uuid PRIMARY KEY"));
+
+        constraints.primary = false;
+        constraints.not_null = true;
+        constraints.unique = true;
+
+        let ddl = d.add_column("id", true, &ColumnType::UUID, &constraints);
+        assert_eq!(ddl, format!("ADD COLUMN \"id\" uuid NOT NULL UNIQUE"));
     }
 
     #[test]
