@@ -1,9 +1,12 @@
 use std::rc::Rc;
 
-use crate::{change::Change, sql_dialect::SqlDialect};
+use crate::{
+    change::{Change, Changes},
+    sql_dialect::SqlDialect,
+};
 
 pub struct Table {
-    pub(crate) changes: Vec<Box<dyn Change>>,
+    pub(crate) changes: Changes,
 }
 
 impl Table {
@@ -13,7 +16,7 @@ impl Table {
         }
     }
 
-    pub fn get_changes(self) -> Vec<Box<dyn Change>> {
+    pub fn get_changes(self) -> Changes {
         self.changes
     }
 }
@@ -38,7 +41,7 @@ pub struct TableChange {
     operation: TableChangeOp,
     schema: String,
     name: String,
-    changes: Vec<Box<dyn Change>>,
+    changes: Changes,
 }
 
 impl TableChange {
@@ -46,7 +49,7 @@ impl TableChange {
         operation: TableChangeOp,
         schema: String,
         name: String,
-        changes: Vec<Box<dyn Change>>,
+        changes: Changes,
     ) -> Box<Self> {
         Box::new(Self {
             operation,

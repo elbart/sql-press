@@ -5,6 +5,8 @@ use crate::{
 };
 use std::{fmt::Debug, rc::Rc};
 
+pub(crate) type Changes = Vec<Box<dyn Change>>;
+
 pub trait Change: Debug {
     fn get_ddl(&self, dialect: Rc<dyn SqlDialect>) -> String;
 }
@@ -12,7 +14,7 @@ pub trait Change: Debug {
 #[derive(Debug)]
 pub struct ChangeSet {
     schema: String,
-    changes: Vec<Box<dyn Change>>,
+    changes: Changes,
 }
 
 impl ChangeSet {
