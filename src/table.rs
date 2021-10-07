@@ -7,17 +7,22 @@ use crate::{
 
 pub struct Table {
     pub(crate) changes: Changes,
+    pub(crate) idx_changes: Changes,
 }
 
 impl Table {
     pub fn new() -> Self {
         Self {
             changes: Vec::new(),
+            idx_changes: Vec::new(),
         }
     }
 
     pub fn get_changes(self) -> Changes {
         self.changes
+            .into_iter()
+            .chain(self.idx_changes.into_iter())
+            .collect()
     }
 }
 
@@ -69,7 +74,15 @@ impl Change for TableChange {
                     .iter()
                     .map(|c| c.get_ddl(dialect.clone()))
                     .collect();
-                dialect.create_table(&self.name, c)
+                dialect.create_table(&self.name, c, false)
+            }
+            TableChangeOp::CreateIfNotExists => {
+                let c = self
+                    .changes
+                    .iter()
+                    .map(|c| c.get_ddl(dialect.clone()))
+                    .collect();
+                dialect.create_table(&self.name, c, true)
             }
             TableChangeOp::Alter => {
                 let c = self
@@ -83,7 +96,6 @@ impl Change for TableChange {
             TableChangeOp::Rename { new_table_name } => {
                 dialect.rename_table(&self.name, new_table_name)
             }
-            _ => todo!(),
         }
     }
 }

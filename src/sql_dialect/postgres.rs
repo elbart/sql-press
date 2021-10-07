@@ -10,15 +10,24 @@ pub struct Postgres {
 impl Postgres {
     pub fn new() -> Self {
         Self {
+            ..Default::default()
+        }
+    }
+}
+
+impl Default for Postgres {
+    fn default() -> Self {
+        Self {
             schema: "public".into(),
         }
     }
 }
 
 impl SqlDialect for Postgres {
-    fn create_table(&self, name: &str, changes: Vec<String>) -> String {
+    fn create_table(&self, name: &str, changes: Vec<String>, if_not_exists: bool) -> String {
         format!(
-            "CREATE TABLE {}.\"{}\" (\n{}\n);",
+            "CREATE TABLE {}{}.\"{}\" (\n{}\n);",
+            if_not_exists.then(|| "IF NOT EXISTS ").unwrap_or(""),
             self.schema,
             name,
             changes.join(",\n")
@@ -84,6 +93,33 @@ impl SqlDialect for Postgres {
         )
     }
 
+    fn add_index(
+        &self,
+        _table_name: &str,
+        _columns: &[String],
+        _idx_name: &Option<String>,
+    ) -> String {
+        todo!()
+    }
+
+    fn add_foreign_index(
+        &self,
+        column_name: &str,
+        foreign_table_name: &str,
+        foreign_column_name: &str,
+        idx_name: Option<String>,
+    ) -> String {
+        format!(
+            "{}FOREIGN KEY \"{}\" REFERENCES {}(\"{}\");",
+            idx_name
+                .map(|x| format!("CONSTRAINT {} ", x))
+                .unwrap_or_else(|| "".into()),
+            column_name,
+            foreign_table_name,
+            foreign_column_name
+        )
+    }
+
     fn column_type(&self, ct: &ColumnType) -> String {
         match ct {
             ColumnType::UUID => "uuid".into(),
@@ -101,7 +137,7 @@ impl SqlDialect for Postgres {
 
         let c = c.trim();
 
-        if c.len() > 0 {
+        if !c.is_empty() {
             // prefix with a space
             format!(" {}", c)
         } else {
@@ -117,13 +153,19 @@ mod tests {
     #[test]
     fn create_table() {
         let d = Box::new(Postgres::new());
-        let ddl = d.create_table("tag", Vec::new());
+        let ddl = d.create_table("tag", Vec::new(), false);
         assert_eq!(ddl, format!("CREATE TABLE public.\"tag\" (\n\n);"));
 
-        let ddl = d.create_table("tag", vec!["CHANGE 1".into(), "CHANGE 2".into()]);
+        let ddl = d.create_table("tag", vec!["CHANGE 1".into(), "CHANGE 2".into()], false);
         assert_eq!(
             ddl,
             format!("CREATE TABLE public.\"tag\" (\nCHANGE 1,\nCHANGE 2\n);")
+        );
+
+        let ddl = d.create_table("tag", Vec::new(), true);
+        assert_eq!(
+            ddl,
+            format!("CREATE TABLE IF NOT EXISTS public.\"tag\" (\n\n);")
         );
     }
 
@@ -194,5 +236,23 @@ mod tests {
 
         let ddl = d.drop_column("id", true);
         assert_eq!(ddl, format!("DROP COLUMN IF EXISTS \"id\""));
+    }
+
+    #[test]
+    fn add_foreign_index() {
+        let d = Box::new(Postgres::new());
+        let ddl = d.add_foreign_index("blubb_id", "blubb", "id", None);
+        assert_eq!(
+            ddl,
+            format!("FOREIGN KEY \"blubb_id\" REFERENCES blubb(\"id\");")
+        );
+
+        let ddl = d.add_foreign_index("blubb_id", "blubb", "id", Some("fk_blubb_blubb_id".into()));
+        assert_eq!(
+            ddl,
+            format!(
+                "CONSTRAINT fk_blubb_blubb_id FOREIGN KEY \"blubb_id\" REFERENCES blubb(\"id\");"
+            )
+        );
     }
 }

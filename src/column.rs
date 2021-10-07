@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{change::Change, sql_dialect::SqlDialect, table::Table};
+use crate::{change::Change, index::IndexAdd, sql_dialect::SqlDialect, table::Table};
 
 #[derive(Debug, Clone)]
 pub enum ColumnChangeOp {
@@ -144,7 +144,7 @@ pub enum ColumnType {
     VARCHAR(usize),
 }
 
-pub trait ColumnCreate {
+pub trait ColumnAdd {
     fn add_column(&mut self, column: ColumnAddChange);
 }
 
@@ -153,7 +153,7 @@ pub trait ColumnDrop {
     fn drop_column_if_exists(&mut self, name: &str);
 }
 
-impl ColumnCreate for Table {
+impl ColumnAdd for Table {
     fn add_column(&mut self, column: ColumnAddChange) {
         self.changes.push(Box::new(column));
     }
@@ -175,7 +175,10 @@ impl ColumnDrop for Table {
     }
 }
 
-pub trait ColumnAlter: ColumnDrop {
+pub trait TableCreate: ColumnAdd + IndexAdd {}
+impl TableCreate for Table {}
+
+pub trait TableAlter: ColumnDrop + IndexAdd {
     fn add_column(&mut self, column: ColumnAddChange);
 
     fn rename_column(&mut self, column_name: &str, new_column_name: &str);
@@ -188,7 +191,7 @@ pub trait ColumnAlter: ColumnDrop {
     );
 }
 
-impl ColumnAlter for Table {
+impl TableAlter for Table {
     fn add_column(&mut self, column: ColumnAddChange) {
         let mut alter_column = column;
         alter_column.with_prefix = true;
@@ -234,9 +237,9 @@ mod tests {
     #[test]
     fn column_add_change() {
         let mut t = Table::default();
-        column::ColumnCreate::add_column(&mut t, uuid("id").primary(true).build());
-        column::ColumnCreate::add_column(&mut t, uuid("id2").primary(false).build());
-        column::ColumnAlter::add_column(&mut t, varchar("id2", None).build());
+        column::ColumnAdd::add_column(&mut t, uuid("id").primary(true).build());
+        column::ColumnAdd::add_column(&mut t, uuid("id2").primary(false).build());
+        column::TableAlter::add_column(&mut t, varchar("id2", None).build());
         assert!(t.changes.len() == 3);
 
         let col: &ColumnAddChange = get_downcasted_column_change(&t, 0);
@@ -248,9 +251,9 @@ mod tests {
     #[test]
     fn column_alter_change() {
         let mut t = Table::default();
-        column::ColumnAlter::add_column(&mut t, varchar("id2", None).build());
-        column::ColumnAlter::alter_column(&mut t, "id2", ColumnType::UUID, None);
-        column::ColumnAlter::rename_column(&mut t, "id2", "id3");
+        column::TableAlter::add_column(&mut t, varchar("id2", None).build());
+        column::TableAlter::alter_column(&mut t, "id2", ColumnType::UUID, None);
+        column::TableAlter::rename_column(&mut t, "id2", "id3");
         assert!(t.changes.len() == 3);
 
         let col: &ColumnAddChange = get_downcasted_column_change(&t, 0);

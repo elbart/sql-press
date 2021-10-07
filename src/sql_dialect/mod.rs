@@ -3,7 +3,7 @@ use crate::column::{ColumnType, Constraints};
 pub mod postgres;
 
 pub trait SqlDialect {
-    fn create_table(&self, name: &str, changes: Vec<String>) -> String;
+    fn create_table(&self, name: &str, changes: Vec<String>, if_not_exists: bool) -> String;
 
     fn alter_table(&self, name: &str, changes: Vec<String>) -> String;
 
@@ -24,6 +24,16 @@ pub trait SqlDialect {
     fn alter_column(&self, name: &str, ct: &ColumnType, conversion_method: Option<&str>) -> String;
 
     fn drop_column(&self, name: &str, if_exists: bool) -> String;
+
+    fn add_index(&self, table_name: &str, columns: &[String], idx_name: &Option<String>) -> String;
+
+    fn add_foreign_index(
+        &self,
+        column_name: &str,
+        foreign_table_name: &str,
+        foreign_column_name: &str,
+        idx_name: Option<String>,
+    ) -> String;
 
     fn column_type(&self, ct: &ColumnType) -> String;
 

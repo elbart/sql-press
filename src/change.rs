@@ -1,5 +1,5 @@
 use crate::{
-    column::{ColumnAlter, ColumnCreate},
+    column::{TableAlter, TableCreate},
     sql_dialect::SqlDialect,
     table::{Table, TableChange, TableChangeOp},
 };
@@ -36,7 +36,7 @@ impl ChangeSet {
 
     pub fn create_table<H>(&mut self, name: &str, handler: H)
     where
-        H: FnOnce(&mut dyn ColumnCreate),
+        H: FnOnce(&mut dyn TableCreate),
     {
         let mut t: Table = Default::default();
         handler(&mut t);
@@ -50,7 +50,7 @@ impl ChangeSet {
 
     pub fn alter_table<H>(&mut self, name: &str, handler: H)
     where
-        H: FnOnce(&mut dyn ColumnAlter),
+        H: FnOnce(&mut dyn TableAlter),
     {
         let mut t: Table = Default::default();
         handler(&mut t);
@@ -114,8 +114,9 @@ mod tests {
         let mut cs = ChangeSet::new();
 
         cs.create_table("xxx", |t| {
+            t.add_foreign_index("tag_id", "tag", "id", Some("fk_blubbi".into()));
             t.add_column(uuid("id").primary(true).build());
-            t.add_column(varchar("description", None).build())
+            t.add_column(varchar("description", None).build());
         });
 
         let _d = Rc::new(Postgres::new());
