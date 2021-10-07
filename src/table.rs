@@ -69,7 +69,7 @@ impl Change for TableChange {
                     .iter()
                     .map(|c| c.get_ddl(dialect.clone()))
                     .collect();
-                dialect.create_table(&self.schema, &self.name, c)
+                dialect.create_table(&self.name, c)
             }
             TableChangeOp::Alter => {
                 let c = self
@@ -77,11 +77,11 @@ impl Change for TableChange {
                     .iter()
                     .map(|c| c.get_ddl(dialect.clone()))
                     .collect();
-                dialect.alter_table(&self.schema, &self.name, c)
+                dialect.alter_table(&self.name, c)
             }
-            TableChangeOp::Drop => dialect.drop_table(&self.schema, &self.name),
+            TableChangeOp::Drop => dialect.drop_table(&self.name),
             TableChangeOp::Rename { new_table_name } => {
-                dialect.rename_table(&self.schema, &self.name, new_table_name)
+                dialect.rename_table(&self.name, new_table_name)
             }
             _ => todo!(),
         }

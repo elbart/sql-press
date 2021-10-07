@@ -118,7 +118,7 @@ mod tests {
             t.add_column(varchar("description", None).build())
         });
 
-        let _d = Rc::new(Postgres {});
+        let _d = Rc::new(Postgres::new());
         // println!("{}", cs.get_ddl(d));
     }
 
@@ -140,7 +140,7 @@ mod tests {
             );
         });
 
-        let _d = Rc::new(Postgres {});
+        let _d = Rc::new(Postgres::new());
         // println!("{}", cs.get_ddl(d));
     }
 
@@ -150,7 +150,7 @@ mod tests {
 
         cs.rename_table("tags", "tag");
 
-        let _d = Rc::new(Postgres {});
+        let _d = Rc::new(Postgres::new());
         // println!("{}", cs.get_ddl(d));
     }
 
@@ -160,7 +160,7 @@ mod tests {
 
         cs.drop_table("tag");
 
-        let _d = Rc::new(Postgres {});
+        let _d = Rc::new(Postgres::new());
         // println!("{}", cs.get_ddl(d));
     }
 }

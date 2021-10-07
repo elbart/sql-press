@@ -3,13 +3,13 @@ use crate::column::{ColumnType, Constraints};
 pub mod postgres;
 
 pub trait SqlDialect {
-    fn create_table(&self, schema: &str, name: &str, changes: Vec<String>) -> String;
+    fn create_table(&self, name: &str, changes: Vec<String>) -> String;
 
-    fn alter_table(&self, schema: &str, name: &str, changes: Vec<String>) -> String;
+    fn alter_table(&self, name: &str, changes: Vec<String>) -> String;
 
-    fn rename_table(&self, schema: &str, name: &str, new_table_name: &str) -> String;
+    fn rename_table(&self, name: &str, new_table_name: &str) -> String;
 
-    fn drop_table(&self, schema: &str, name: &str) -> String;
+    fn drop_table(&self, name: &str) -> String;
 
     fn add_column(
         &self,
