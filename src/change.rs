@@ -89,6 +89,29 @@ impl ChangeSet {
             .collect::<Vec<String>>()
             .join("\n\n")
     }
+
+    pub fn run_script(&mut self, script: &str) {
+        self.changes.push(Box::new(Script::new(script)))
+    }
+}
+
+#[derive(Debug)]
+pub struct Script {
+    script: String,
+}
+
+impl Script {
+    pub fn new(script: &str) -> Self {
+        Self {
+            script: script.into(),
+        }
+    }
+}
+
+impl Change for Script {
+    fn get_ddl(&self, _dialect: Rc<dyn SqlDialect>) -> String {
+        format!("{}\n", self.script)
+    }
 }
 
 impl Default for ChangeSet {
@@ -141,8 +164,10 @@ mod tests {
             );
         });
 
+        cs.run_script("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");
+
         let _d = Rc::new(Postgres::new());
-        // println!("{}", cs.get_ddl(d));
+        // println!("{}", cs.get_ddl(_d));
     }
 
     #[test]
