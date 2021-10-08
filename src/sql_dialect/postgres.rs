@@ -120,6 +120,17 @@ impl SqlDialect for Postgres {
         )
     }
 
+    fn add_primary_index(&self, columns: &Vec<String>) -> String {
+        format!(
+            "PRIMARY KEY({})",
+            columns
+                .iter()
+                .map(|c| format!("\"{}\"", c))
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
+    }
+
     fn column_type(&self, ct: &ColumnType) -> String {
         match ct {
             ColumnType::UUID => "uuid".into(),
@@ -271,5 +282,12 @@ mod tests {
                 "CONSTRAINT fk_blubb_blubb_id FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")"
             )
         );
+    }
+
+    #[test]
+    fn add_primary_index() {
+        let d = Box::new(Postgres::new());
+        let ddl = d.add_primary_index(&vec!["id".into(), "id2".into()]);
+        assert_eq!(ddl, format!("PRIMARY KEY(\"id\", \"id2\")"));
     }
 }

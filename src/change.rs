@@ -145,6 +145,7 @@ mod tests {
                     .build(),
             );
             t.add_column(varchar("description", None).build());
+            t.add_primary_index(vec!["id", "id2"]);
         });
 
         let _d = Rc::new(Postgres::new());

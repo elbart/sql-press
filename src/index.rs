@@ -10,6 +10,8 @@ pub trait IndexAdd {
         foreign_column_name: &str,
         idx_name: Option<String>,
     );
+
+    fn add_primary_index(&mut self, columns: Vec<&str>);
 }
 
 impl IndexAdd for Table {
@@ -27,6 +29,12 @@ impl IndexAdd for Table {
             idx_name,
         }));
     }
+
+    fn add_primary_index(&mut self, columns: Vec<&str>) {
+        self.idx_changes.push(Box::new(IndexAddPrimaryChange {
+            columns: columns.iter().map(|i| i.to_string()).collect(),
+        }))
+    }
 }
 
 #[derive(Debug)]
@@ -42,6 +50,17 @@ pub struct IndexAddForeignChange {
     foreign_table_name: String,
     foreign_column_name: String,
     idx_name: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct IndexAddPrimaryChange {
+    columns: Vec<String>,
+}
+
+impl Change for IndexAddPrimaryChange {
+    fn get_ddl(&self, dialect: Rc<dyn SqlDialect>) -> String {
+        dialect.add_primary_index(&self.columns)
+    }
 }
 
 impl Change for IndexAddCombinedChange {

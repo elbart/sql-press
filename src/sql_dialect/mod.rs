@@ -35,6 +35,8 @@ pub trait SqlDialect {
         idx_name: Option<String>,
     ) -> String;
 
+    fn add_primary_index(&self, columns: &Vec<String>) -> String;
+
     fn column_type(&self, ct: &ColumnType) -> String;
 
     fn constraints(&self, constraints: &Constraints) -> String;
