@@ -128,10 +128,16 @@ impl SqlDialect for Postgres {
     }
 
     fn constraints(&self, constraints: &Constraints) -> String {
+        let def_constraint = || match &constraints.default {
+            crate::column::DefaultConstraint::None => "".into(),
+            crate::column::DefaultConstraint::Plain(s) => format!("DEFAULT {}", s),
+        };
+
         let c = vec![
             constraints.primary.then(|| "PRIMARY KEY").unwrap_or(""),
             constraints.not_null.then(|| "NOT NULL").unwrap_or(""),
             constraints.unique.then(|| "UNIQUE").unwrap_or(""),
+            def_constraint().as_ref(),
         ]
         .join(" ");
 
@@ -148,6 +154,8 @@ impl SqlDialect for Postgres {
 
 #[cfg(test)]
 mod tests {
+    use crate::column::DefaultConstraint;
+
     use super::*;
 
     #[test]
@@ -219,6 +227,15 @@ mod tests {
 
         let ddl = d.add_column("id", true, &ColumnType::UUID, &constraints);
         assert_eq!(ddl, format!("ADD COLUMN \"id\" uuid NOT NULL UNIQUE"));
+
+        let mut constraints = Constraints::new();
+        constraints.default = DefaultConstraint::Plain("uuid_v4_generate()".into());
+
+        let ddl = d.add_column("id", true, &ColumnType::UUID, &constraints);
+        assert_eq!(
+            ddl,
+            format!("ADD COLUMN \"id\" uuid DEFAULT uuid_v4_generate()")
+        );
     }
 
     #[test]

@@ -126,7 +126,7 @@ impl Default for ChangeSet {
 #[cfg(test)]
 mod tests {
     use crate::{
-        column::{uuid, varchar, ColumnType},
+        column::{uuid, varchar, ColumnType, DefaultConstraint},
         sql_dialect::postgres::Postgres,
     };
 
@@ -138,12 +138,17 @@ mod tests {
 
         cs.create_table("xxx", |t| {
             t.add_foreign_index("tag_id", "tag", "id", Some("fk_blubbi".into()));
-            t.add_column(uuid("id").primary(true).build());
+            t.add_column(
+                uuid("id")
+                    .primary(true)
+                    .default(DefaultConstraint::Plain("uuid_generate_v4()".into()))
+                    .build(),
+            );
             t.add_column(varchar("description", None).build());
         });
 
         let _d = Rc::new(Postgres::new());
-        // println!("{}", cs.get_ddl(d));
+        // println!("{}", cs.get_ddl(_d));
     }
 
     #[test]

@@ -13,7 +13,14 @@ pub struct Constraints {
     pub(crate) primary: bool,
     pub(crate) not_null: bool,
     pub(crate) unique: bool,
+    pub(crate) default: DefaultConstraint,
     // pub(crate) default: Option<T>, // TODO
+}
+
+#[derive(Debug, Clone)]
+pub enum DefaultConstraint {
+    None,
+    Plain(String),
 }
 
 impl Constraints {
@@ -30,6 +37,7 @@ impl Default for Constraints {
             primary: false,
             not_null: false,
             unique: false,
+            default: DefaultConstraint::None,
         }
     }
 }
@@ -121,6 +129,12 @@ impl ColumnAddBuilder {
 
     pub fn unique(mut self, unique: bool) -> Self {
         self.inner.constraints.unique = unique;
+
+        self
+    }
+
+    pub fn default(mut self, default: DefaultConstraint) -> Self {
+        self.inner.constraints.default = default;
 
         self
     }
