@@ -33,6 +33,7 @@ pub trait SqlDialect {
         foreign_table_name: &str,
         foreign_column_name: &str,
         idx_name: Option<String>,
+        add_clause: &bool,
     ) -> String;
 
     fn add_primary_index(&self, columns: &Vec<String>) -> String;

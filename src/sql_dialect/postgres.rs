@@ -108,9 +108,13 @@ impl SqlDialect for Postgres {
         foreign_table_name: &str,
         foreign_column_name: &str,
         idx_name: Option<String>,
+        add_clause: &bool,
     ) -> String {
         format!(
-            "{}FOREIGN KEY(\"{}\") REFERENCES {}(\"{}\")",
+            "{}{}FOREIGN KEY(\"{}\") REFERENCES \"{}\"(\"{}\")",
+            add_clause
+                .then(|| format!("ADD "))
+                .unwrap_or_else(|| "".into()),
             idx_name
                 .map(|x| format!("CONSTRAINT {} ", x))
                 .unwrap_or_else(|| "".into()),
@@ -269,17 +273,44 @@ mod tests {
     #[test]
     fn add_foreign_index() {
         let d = Box::new(Postgres::new());
-        let ddl = d.add_foreign_index("blubb_id", "blubb", "id", None);
+        let ddl = d.add_foreign_index("blubb_id", "blubb", "id", None, &false);
         assert_eq!(
             ddl,
             format!("FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")")
         );
 
-        let ddl = d.add_foreign_index("blubb_id", "blubb", "id", Some("fk_blubb_blubb_id".into()));
+        let d = Box::new(Postgres::new());
+        let ddl = d.add_foreign_index("blubb_id", "blubb", "id", None, &true);
+        assert_eq!(
+            ddl,
+            format!("ADD FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")")
+        );
+
+        let ddl = d.add_foreign_index(
+            "blubb_id",
+            "blubb",
+            "id",
+            Some("fk_blubb_blubb_id".into()),
+            &false,
+        );
         assert_eq!(
             ddl,
             format!(
                 "CONSTRAINT fk_blubb_blubb_id FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")"
+            )
+        );
+
+        let ddl = d.add_foreign_index(
+            "blubb_id",
+            "blubb",
+            "id",
+            Some("fk_blubb_blubb_id".into()),
+            &true,
+        );
+        assert_eq!(
+            ddl,
+            format!(
+                "ADD CONSTRAINT fk_blubb_blubb_id FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")"
             )
         );
     }

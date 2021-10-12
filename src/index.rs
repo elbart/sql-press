@@ -14,6 +14,18 @@ pub trait IndexAdd {
     fn add_primary_index(&mut self, columns: Vec<&str>);
 }
 
+pub trait IndexAlter {
+    fn add_foreign_index(
+        &mut self,
+        column_name: &str,
+        foreign_table_name: &str,
+        foreign_column_name: &str,
+        idx_name: Option<String>,
+    );
+
+    fn add_primary_index(&mut self, columns: Vec<&str>);
+}
+
 impl IndexAdd for Table {
     fn add_foreign_index(
         &mut self,
@@ -27,6 +39,31 @@ impl IndexAdd for Table {
             foreign_table_name: foreign_table_name.into(),
             foreign_column_name: foreign_column_name.into(),
             idx_name,
+            add_clause: false,
+        }));
+    }
+
+    fn add_primary_index(&mut self, columns: Vec<&str>) {
+        self.idx_changes.push(Box::new(IndexAddPrimaryChange {
+            columns: columns.iter().map(|i| i.to_string()).collect(),
+        }))
+    }
+}
+
+impl IndexAlter for Table {
+    fn add_foreign_index(
+        &mut self,
+        column_name: &str,
+        foreign_table_name: &str,
+        foreign_column_name: &str,
+        idx_name: Option<String>,
+    ) {
+        self.idx_changes.push(Box::new(IndexAddForeignChange {
+            column_name: column_name.into(),
+            foreign_table_name: foreign_table_name.into(),
+            foreign_column_name: foreign_column_name.into(),
+            idx_name,
+            add_clause: true,
         }));
     }
 
@@ -50,6 +87,7 @@ pub struct IndexAddForeignChange {
     foreign_table_name: String,
     foreign_column_name: String,
     idx_name: Option<String>,
+    add_clause: bool,
 }
 
 #[derive(Debug)]
@@ -76,6 +114,7 @@ impl Change for IndexAddForeignChange {
             &self.foreign_table_name,
             &self.foreign_column_name,
             self.idx_name.clone(),
+            &self.add_clause,
         )
     }
 }

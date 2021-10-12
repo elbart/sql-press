@@ -1,6 +1,11 @@
 use std::rc::Rc;
 
-use crate::{change::Change, index::IndexAdd, sql_dialect::SqlDialect, table::Table};
+use crate::{
+    change::Change,
+    index::{IndexAdd, IndexAlter},
+    sql_dialect::SqlDialect,
+    table::Table,
+};
 
 #[derive(Debug, Clone)]
 pub enum ColumnChangeOp {
@@ -192,7 +197,7 @@ impl ColumnDrop for Table {
 pub trait TableCreate: ColumnAdd + IndexAdd {}
 impl TableCreate for Table {}
 
-pub trait TableAlter: ColumnDrop + IndexAdd {
+pub trait TableAlter: ColumnDrop + IndexAlter {
     fn add_column(&mut self, column: ColumnAddChange);
 
     fn rename_column(&mut self, column_name: &str, new_column_name: &str);
