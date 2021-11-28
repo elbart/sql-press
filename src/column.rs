@@ -157,10 +157,15 @@ pub fn varchar(name: &str, size: Option<usize>) -> ColumnAddBuilder {
     ColumnAddBuilder::new(name, ColumnType::VARCHAR(size.unwrap_or(255)))
 }
 
+pub fn real(name: &str) -> ColumnAddBuilder {
+    ColumnAddBuilder::new(name, ColumnType::REAL)
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ColumnType {
     UUID,
     VARCHAR(usize),
+    REAL,
 }
 
 pub trait ColumnAdd {

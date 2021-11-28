@@ -139,6 +139,7 @@ impl SqlDialect for Postgres {
         match ct {
             ColumnType::UUID => "uuid".into(),
             ColumnType::VARCHAR(s) => format!("VARCHAR({})", s),
+            ColumnType::REAL => "real".into(),
         }
     }
 
