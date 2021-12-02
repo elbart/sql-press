@@ -19,7 +19,6 @@ pub struct Constraints {
     pub(crate) not_null: bool,
     pub(crate) unique: bool,
     pub(crate) default: DefaultConstraint,
-    // pub(crate) default: Option<T>, // TODO
 }
 
 #[derive(Debug, Clone)]

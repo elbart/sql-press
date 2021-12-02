@@ -44,7 +44,6 @@ pub enum TableChangeOp {
 #[derive(Debug)]
 pub struct TableChange {
     operation: TableChangeOp,
-    schema: String,
     name: String,
     changes: Changes,
 }
@@ -52,13 +51,12 @@ pub struct TableChange {
 impl TableChange {
     pub fn new(
         operation: TableChangeOp,
-        schema: String,
+        _schema: String,
         name: String,
         changes: Changes,
     ) -> Box<Self> {
         Box::new(Self {
             operation,
-            schema,
             name,
             changes,
         })
