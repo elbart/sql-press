@@ -283,14 +283,14 @@ mod tests {
         let ddl = d.add_foreign_index("blubb_id", "blubb", "id", None, &false);
         assert_eq!(
             ddl,
-            format!("FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")")
+            format!("FOREIGN KEY(\"blubb_id\") REFERENCES \"blubb\"(\"id\")")
         );
 
         let d = Box::new(Postgres::new());
         let ddl = d.add_foreign_index("blubb_id", "blubb", "id", None, &true);
         assert_eq!(
             ddl,
-            format!("ADD FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")")
+            format!("ADD FOREIGN KEY(\"blubb_id\") REFERENCES \"blubb\"(\"id\")")
         );
 
         let ddl = d.add_foreign_index(
@@ -303,7 +303,7 @@ mod tests {
         assert_eq!(
             ddl,
             format!(
-                "CONSTRAINT fk_blubb_blubb_id FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")"
+                "CONSTRAINT fk_blubb_blubb_id FOREIGN KEY(\"blubb_id\") REFERENCES \"blubb\"(\"id\")"
             )
         );
 
@@ -317,7 +317,7 @@ mod tests {
         assert_eq!(
             ddl,
             format!(
-                "ADD CONSTRAINT fk_blubb_blubb_id FOREIGN KEY(\"blubb_id\") REFERENCES blubb(\"id\")"
+                "ADD CONSTRAINT fk_blubb_blubb_id FOREIGN KEY(\"blubb_id\") REFERENCES \"blubb\"(\"id\")"
             )
         );
     }
