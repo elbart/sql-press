@@ -138,8 +138,14 @@ impl SqlDialect for Postgres {
     fn column_type(&self, ct: &ColumnType) -> String {
         match ct {
             ColumnType::UUID => "uuid".into(),
+            ColumnType::BOOL => "boolean".into(),
             ColumnType::VARCHAR(s) => format!("VARCHAR({})", s),
             ColumnType::REAL => "real".into(),
+            ColumnType::TEXT => "text".into(),
+            ColumnType::TIMESTAMP => "timestamp".into(),
+            ColumnType::TIMESTAMPTZ => "timestamp with time zone".into(),
+            ColumnType::INTEGER => "integer".into(),
+            ColumnType::JSONB => "jsonb".into(),
         }
     }
 

@@ -152,6 +152,10 @@ pub fn uuid(name: &str) -> ColumnAddBuilder {
     ColumnAddBuilder::new(name, ColumnType::UUID)
 }
 
+pub fn bool(name: &str) -> ColumnAddBuilder {
+    ColumnAddBuilder::new(name, ColumnType::BOOL)
+}
+
 pub fn varchar(name: &str, size: Option<usize>) -> ColumnAddBuilder {
     ColumnAddBuilder::new(name, ColumnType::VARCHAR(size.unwrap_or(255)))
 }
@@ -160,11 +164,37 @@ pub fn real(name: &str) -> ColumnAddBuilder {
     ColumnAddBuilder::new(name, ColumnType::REAL)
 }
 
+pub fn text(name: &str) -> ColumnAddBuilder {
+    ColumnAddBuilder::new(name, ColumnType::TEXT)
+}
+
+pub fn timestamp(name: &str) -> ColumnAddBuilder {
+    ColumnAddBuilder::new(name, ColumnType::TIMESTAMP)
+}
+
+pub fn timestamp_tz(name: &str) -> ColumnAddBuilder {
+    ColumnAddBuilder::new(name, ColumnType::TIMESTAMPTZ)
+}
+
+pub fn integer(name: &str) -> ColumnAddBuilder {
+    ColumnAddBuilder::new(name, ColumnType::INTEGER)
+}
+
+pub fn jsonb(name: &str) -> ColumnAddBuilder {
+    ColumnAddBuilder::new(name, ColumnType::JSONB)
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ColumnType {
     UUID,
+    BOOL,
     VARCHAR(usize),
     REAL,
+    INTEGER,
+    TEXT,
+    TIMESTAMP,
+    TIMESTAMPTZ,
+    JSONB,
 }
 
 pub trait ColumnAdd {
