@@ -1,6 +1,7 @@
 use crate::column::{ColumnType, Constraints};
 
 pub mod postgres;
+pub use postgres::Postgres;
 
 pub trait SqlDialect {
     fn create_table(&self, name: &str, changes: Vec<String>, if_not_exists: bool) -> String;

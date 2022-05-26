@@ -184,6 +184,8 @@ pub fn jsonb(name: &str) -> ColumnAddBuilder {
     ColumnAddBuilder::new(name, ColumnType::JSONB)
 }
 
+/// Available column types (still partially postgres specific). The crates user
+/// needs to be made aware of this fact.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ColumnType {
     UUID,

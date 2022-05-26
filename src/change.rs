@@ -5,29 +5,48 @@ use crate::{
 };
 use std::{any::Any, fmt::Debug, rc::Rc};
 
+/// Convenience type alias, which holds a list of Changes.
 pub(crate) type Changes = Vec<Box<dyn Change>>;
 
+#[doc(hidden)]
+/// Trait which add support to downcast references of subtraits (especially [crate::change::Change]).
+/// This is solely used for testing purposes.
 pub trait ChangeToAny: 'static {
     fn as_any(&self) -> &dyn Any;
 }
 
+#[doc(hidden)]
 impl<T: 'static> ChangeToAny for T {
     fn as_any(&self) -> &dyn Any {
         self
     }
 }
 
+/// Central trait, which is used to convert structured data to Data Definition
+/// Language of the given [crate::sql_dialect::SqlDialect].
 pub trait Change: Debug + ChangeToAny {
+    /// Convert self-contained structured SQL changes to Data Definition
+    /// Language of the given [crate::sql_dialect::SqlDialect].
     fn get_ddl(&self, dialect: Rc<dyn SqlDialect>) -> String;
 }
 
+/// Holds a set of changes, which shall be converted to DDL
 #[derive(Debug)]
 pub struct ChangeSet {
+    /// Database Schema (postgres specific feature)
     schema: String,
+    /// List of Changes, to be applied within this `ChangeSet`
     changes: Changes,
 }
 
 impl ChangeSet {
+    /// Create a new ChangeSet
+    ///
+    /// ```
+    /// # use sql_press::change::ChangeSet;
+    /// let mut cs = ChangeSet::new();
+    /// cs.rename_table("old", "new");
+    /// ```
     pub fn new() -> Self {
         Self {
             ..Default::default()
@@ -172,7 +191,7 @@ mod tests {
 
         cs.run_script("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");
 
-        let _d = Rc::new(Postgres::new());
+        let _d = Postgres::new_rc();
         // println!("{}", cs.get_ddl(_d));
     }
 
