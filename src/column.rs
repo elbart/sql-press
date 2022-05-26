@@ -1,3 +1,5 @@
+//! Provides functionality for add/modifying columns. Also provides convenience
+//! methods for defining different data types of columns.
 use std::rc::Rc;
 
 use crate::{
@@ -184,6 +186,8 @@ pub fn jsonb(name: &str) -> ColumnAddBuilder {
     ColumnAddBuilder::new(name, ColumnType::JSONB)
 }
 
+/// Available column types (still partially postgres specific). The crates user
+/// needs to be made aware of this fact.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ColumnType {
     UUID,
@@ -228,10 +232,10 @@ impl ColumnDrop for Table {
     }
 }
 
-pub trait TableCreate: ColumnAdd + IndexAdd {}
-impl TableCreate for Table {}
+pub trait ColumnCreate: ColumnAdd + IndexAdd {}
+impl ColumnCreate for Table {}
 
-pub trait TableAlter: ColumnDrop + IndexAlter {
+pub trait ColumnAlter: ColumnDrop + IndexAlter {
     fn add_column(&mut self, column: ColumnAddChange);
 
     fn rename_column(&mut self, column_name: &str, new_column_name: &str);
@@ -244,7 +248,7 @@ pub trait TableAlter: ColumnDrop + IndexAlter {
     );
 }
 
-impl TableAlter for Table {
+impl ColumnAlter for Table {
     fn add_column(&mut self, column: ColumnAddChange) {
         let mut alter_column = column;
         alter_column.with_prefix = true;
@@ -292,7 +296,7 @@ mod tests {
         let mut t = Table::default();
         column::ColumnAdd::add_column(&mut t, uuid("id").primary(true).build());
         column::ColumnAdd::add_column(&mut t, uuid("id2").primary(false).build());
-        column::TableAlter::add_column(&mut t, varchar("id2", None).build());
+        column::ColumnAlter::add_column(&mut t, varchar("id2", None).build());
         assert!(t.changes.len() == 3);
 
         let col: &ColumnAddChange = get_downcasted_column_change(&t, 0);
@@ -304,9 +308,9 @@ mod tests {
     #[test]
     fn column_alter_change() {
         let mut t = Table::default();
-        column::TableAlter::add_column(&mut t, varchar("id2", None).build());
-        column::TableAlter::alter_column(&mut t, "id2", ColumnType::UUID, None);
-        column::TableAlter::rename_column(&mut t, "id2", "id3");
+        column::ColumnAlter::add_column(&mut t, varchar("id2", None).build());
+        column::ColumnAlter::alter_column(&mut t, "id2", ColumnType::UUID, None);
+        column::ColumnAlter::rename_column(&mut t, "id2", "id3");
         assert!(t.changes.len() == 3);
 
         let col: &ColumnAddChange = get_downcasted_column_change(&t, 0);

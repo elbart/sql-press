@@ -1,3 +1,4 @@
+//! Provides all operations where a full SQL table is changed.
 use std::rc::Rc;
 
 use crate::{
@@ -5,6 +6,7 @@ use crate::{
     sql_dialect::SqlDialect,
 };
 
+/// Contains all column and index changes for a table.
 pub struct Table {
     pub(crate) changes: Changes,
     pub(crate) idx_changes: Changes,
@@ -32,9 +34,11 @@ impl Default for Table {
     }
 }
 
+/// Reflects all operations, which are supported on a table.
 #[derive(Debug)]
 pub enum TableChangeOp {
     Create,
+    // TODO: unused so far
     CreateIfNotExists,
     Alter,
     Rename { new_table_name: String },

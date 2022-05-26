@@ -1,3 +1,4 @@
+//! Provides column index related operations.
 use std::rc::Rc;
 
 use crate::{change::Change, sql_dialect::SqlDialect, table::Table};

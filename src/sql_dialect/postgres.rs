@@ -1,3 +1,7 @@
+//! Postgres implementation of the [SqlDialect] trait. Translates all structured
+//! changes to postgres specific SQL DDL.
+use std::rc::Rc;
+
 use crate::column::{ColumnType, Constraints};
 
 use super::SqlDialect;
@@ -12,6 +16,11 @@ impl Postgres {
         Self {
             ..Default::default()
         }
+    }
+
+    /// Convenience method to directly return a [std::rc::Rc] of this struct.
+    pub fn new_rc() -> Rc<Self> {
+        Rc::new(Self::new())
     }
 }
 
