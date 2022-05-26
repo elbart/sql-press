@@ -9,7 +9,7 @@ use std::{any::Any, fmt::Debug, rc::Rc};
 pub(crate) type Changes = Vec<Box<dyn Change>>;
 
 #[doc(hidden)]
-/// Trait which add support to downcast references of subtraits (especially [crate::change::Change]).
+/// Trait which add support to downcast references of subtraits (especially [Change][crate::change::Change]).
 /// This is solely used for testing purposes.
 pub trait ChangeToAny: 'static {
     fn as_any(&self) -> &dyn Any;
@@ -23,10 +23,10 @@ impl<T: 'static> ChangeToAny for T {
 }
 
 /// Central trait, which is used to convert structured data to Data Definition
-/// Language of the given [crate::sql_dialect::SqlDialect].
+/// Language of the given [SqlDialect][crate::sql_dialect::SqlDialect].
 pub trait Change: Debug + ChangeToAny {
     /// Convert self-contained structured SQL changes to Data Definition
-    /// Language of the given [crate::sql_dialect::SqlDialect].
+    /// Language of the given [SqlDialect][crate::sql_dialect::SqlDialect].
     fn get_ddl(&self, dialect: Rc<dyn SqlDialect>) -> String;
 }
 
@@ -43,7 +43,7 @@ impl ChangeSet {
     /// Create a new ChangeSet
     ///
     /// ```
-    /// # use sql_press::change::ChangeSet;
+    /// use sql_press::change::ChangeSet;
     /// let mut cs = ChangeSet::new();
     /// cs.rename_table("old", "new");
     /// ```
@@ -53,6 +53,27 @@ impl ChangeSet {
         }
     }
 
+    /// Add a new `CREATE TABLE` command to the current [ChangeSet] with the
+    /// given `name` argument. The `handler` is a closure which adds individual
+    /// colum changes to the `CREATE TABLE` command. The `create_table` function
+    /// allows the following commands derived from the trait [TableCreate]:
+    /// - add_column,
+    /// - add_foreign_index,
+    /// - add_primary_index.
+    ///
+    /// # Example
+    /// ```
+    /// use sql_press::{
+    ///     change::ChangeSet,
+    ///     column::{uuid, varchar}
+    /// };
+    ///
+    /// let mut cs = ChangeSet::new();
+    /// cs.create_table("my_table", |t| {
+    ///     t.add_column(uuid("id").build());
+    ///     t.add_column(varchar("name", Some(255)).build());
+    /// });
+    /// ```
     pub fn create_table<H>(&mut self, name: &str, handler: H)
     where
         H: FnOnce(&mut dyn TableCreate),
@@ -67,6 +88,31 @@ impl ChangeSet {
         ));
     }
 
+    /// Add a new `ALTER TABLE` command to the current [ChangeSet] for the
+    /// given table name. The `handler` is a closure which allows to add individual
+    /// colum changes to the `ALTER TABLE` command. The `alter_table` function
+    /// explicitly allows a few more commands to be executed on the table
+    /// derived from the trait [TableAlter]:
+    /// - [TableAlter::add_column],
+    /// - [TableAlter::rename_column],
+    /// - [TableAlter::alter_column],
+    /// - [IndexAlter::add_primary_index][crate::index::IndexAlter::add_primary_index],
+    /// - [IndexAlter::add_foreign_index][crate::index::IndexAlter::add_foreign_index],
+    /// - [ColumnDrop::drop_column][crate::column::ColumnDrop::drop_column],
+    /// - [ColumnDrop::drop_column_if_exists][crate::column::ColumnDrop::drop_column_if_exists].
+    ///
+    /// # Example
+    /// ```
+    /// use sql_press::{
+    ///     change::ChangeSet,
+    ///     column::{uuid, varchar}
+    /// };
+    ///
+    /// let mut cs = ChangeSet::new();
+    /// cs.alter_table("my_table", |t| {
+    ///     t.rename_column("name", "slug");
+    /// });
+    /// ```
     pub fn alter_table<H>(&mut self, name: &str, handler: H)
     where
         H: FnOnce(&mut dyn TableAlter),
@@ -81,6 +127,16 @@ impl ChangeSet {
         ));
     }
 
+    /// Add a new `DROP TABLE` command to the current [ChangeSet] for the given
+    /// table name.
+    ///
+    /// # Example
+    /// ```
+    /// use sql_press::change::ChangeSet;
+    ///
+    /// let mut cs = ChangeSet::new();
+    /// cs.drop_table("my_table");
+    /// ```
     pub fn drop_table(&mut self, name: &str) {
         self.changes.push(TableChange::new(
             TableChangeOp::Drop,
@@ -90,6 +146,16 @@ impl ChangeSet {
         ))
     }
 
+    /// Add a new `ALTER TABLE ... RENAME TO ...` command to the current
+    /// [ChangeSet] for the given table name.
+    ///
+    /// # Example
+    /// ```
+    /// use sql_press::change::ChangeSet;
+    ///
+    /// let mut cs = ChangeSet::new();
+    /// cs.rename_table("my_table", "my_actual_table");
+    /// ```
     pub fn rename_table(&mut self, name: &str, new_name: &str) {
         self.changes.push(TableChange::new(
             TableChangeOp::Rename {
@@ -101,6 +167,37 @@ impl ChangeSet {
         ))
     }
 
+    /// Adds a plain string Change to the current [ChangeSet]. This string is
+    /// executed with no transformation etc. This means the script which is run
+    /// is potentially bound to a specific database type (e.g. postgres, mysql, ...);
+    ///
+    /// # Example
+    /// ```
+    /// use sql_press::change::ChangeSet;
+    ///
+    /// let mut cs = ChangeSet::new();
+    /// cs.run_script("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");
+    /// ```
+    pub fn run_script(&mut self, script: &str) {
+        self.changes.push(Box::new(Script::new(script)))
+    }
+
+    /// Generates DDL for the given [SqlDialect] recursively for all changes in
+    /// the current [ChangeSet].
+    ///
+    /// # Example
+    /// ```
+    /// use sql_press::{change::ChangeSet, sql_dialect::Postgres};
+    ///
+    /// let mut cs = ChangeSet::new();
+    /// cs.drop_table("my_table");
+    /// cs.run_script("DDL INSTRUCTION;");
+    ///
+    /// assert_eq!(r#"DROP TABLE public."my_table";
+    ///
+    /// DDL INSTRUCTION;
+    /// "#, cs.get_ddl(Postgres::new_rc()));
+    /// ```
     pub fn get_ddl(&self, dialect: Rc<dyn SqlDialect>) -> String {
         self.changes
             .iter()
@@ -108,12 +205,9 @@ impl ChangeSet {
             .collect::<Vec<String>>()
             .join("\n\n")
     }
-
-    pub fn run_script(&mut self, script: &str) {
-        self.changes.push(Box::new(Script::new(script)))
-    }
 }
 
+/// Plain change which is run on the database without additional transformation.
 #[derive(Debug)]
 pub struct Script {
     script: String,
