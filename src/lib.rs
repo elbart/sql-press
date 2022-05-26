@@ -1,4 +1,3 @@
-//! # Synopsis
 //! sql_press has the sole purpose of defining database changes (e.g. for
 //! schema migrations) as code instead of using plain SQL. The use of this crate
 //! defines one or multiple [ChangeSet][crate::change::ChangeSet]'s with individual changes.

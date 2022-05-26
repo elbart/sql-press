@@ -1,5 +1,6 @@
+//! Central module for the [Change] trait and the [ChangeSet].
 use crate::{
-    column::{TableAlter, TableCreate},
+    column::{ColumnAlter, ColumnCreate},
     sql_dialect::SqlDialect,
     table::{Table, TableChange, TableChangeOp},
 };
@@ -56,10 +57,10 @@ impl ChangeSet {
     /// Add a new `CREATE TABLE` command to the current [ChangeSet] with the
     /// given `name` argument. The `handler` is a closure which adds individual
     /// colum changes to the `CREATE TABLE` command. The `create_table` function
-    /// allows the following commands derived from the trait [TableCreate]:
-    /// - add_column,
-    /// - add_foreign_index,
-    /// - add_primary_index.
+    /// allows the following commands derived from the trait [ColumnCreate]:
+    /// - [ColumnAdd::add_column][crate::column::ColumnAdd::add_column],
+    /// - [IndexCreate::add_primary_index][crate::index::IndexAlter::add_primary_index],
+    /// - [IndexCreate::add_foreign_index][crate::index::IndexAlter::add_foreign_index],
     ///
     /// # Example
     /// ```
@@ -76,7 +77,7 @@ impl ChangeSet {
     /// ```
     pub fn create_table<H>(&mut self, name: &str, handler: H)
     where
-        H: FnOnce(&mut dyn TableCreate),
+        H: FnOnce(&mut dyn ColumnCreate),
     {
         let mut t: Table = Default::default();
         handler(&mut t);
@@ -92,10 +93,10 @@ impl ChangeSet {
     /// given table name. The `handler` is a closure which allows to add individual
     /// colum changes to the `ALTER TABLE` command. The `alter_table` function
     /// explicitly allows a few more commands to be executed on the table
-    /// derived from the trait [TableAlter]:
-    /// - [TableAlter::add_column],
-    /// - [TableAlter::rename_column],
-    /// - [TableAlter::alter_column],
+    /// derived from the trait [ColumnAlter]:
+    /// - [ColumnAlter::add_column],
+    /// - [ColumnAlter::rename_column],
+    /// - [ColumnAlter::alter_column],
     /// - [IndexAlter::add_primary_index][crate::index::IndexAlter::add_primary_index],
     /// - [IndexAlter::add_foreign_index][crate::index::IndexAlter::add_foreign_index],
     /// - [ColumnDrop::drop_column][crate::column::ColumnDrop::drop_column],
@@ -115,7 +116,7 @@ impl ChangeSet {
     /// ```
     pub fn alter_table<H>(&mut self, name: &str, handler: H)
     where
-        H: FnOnce(&mut dyn TableAlter),
+        H: FnOnce(&mut dyn ColumnAlter),
     {
         let mut t: Table = Default::default();
         handler(&mut t);

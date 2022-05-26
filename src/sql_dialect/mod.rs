@@ -1,3 +1,4 @@
+//! Central trait definition for what an [SqlDialect] implementation has to support.
 use crate::column::{ColumnType, Constraints};
 
 pub mod postgres;

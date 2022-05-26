@@ -1,3 +1,5 @@
+//! Postgres implementation of the [SqlDialect] trait. Translates all structured
+//! changes to postgres specific SQL DDL.
 use std::rc::Rc;
 
 use crate::column::{ColumnType, Constraints};
