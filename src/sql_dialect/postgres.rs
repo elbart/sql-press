@@ -144,6 +144,19 @@ impl SqlDialect for Postgres {
         )
     }
 
+    fn add_unique_constraint(&self, constraint_name: &str, columns: &Vec<String>) -> String {
+        assert!(columns.len() > 1, "This only supports multi-column unique contrainst. For single columns, please just use the .unique() function");
+        format!(
+            r#"CONSTRAINT "{}" UNIQUE ({})"#,
+            constraint_name,
+            columns
+                .iter()
+                .map(|c| format!("\"{}\"", c))
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
+    }
+
     fn column_type(&self, ct: &ColumnType) -> String {
         match ct {
             ColumnType::UUID => "uuid".into(),
@@ -336,5 +349,15 @@ mod tests {
         let d = Box::new(Postgres::new());
         let ddl = d.add_primary_index(&vec!["id".into(), "id2".into()]);
         assert_eq!(ddl, format!("PRIMARY KEY(\"id\", \"id2\")"));
+    }
+
+    #[test]
+    fn add_unique_constraint() {
+        let d = Box::new(Postgres::new());
+        let ddl = d.add_unique_constraint("id_id2_unique", &vec!["id".into(), "id2".into()]);
+        assert_eq!(
+            ddl,
+            format!("CONSTRAINT \"id_id2_unique\" UNIQUE (\"id\", \"id2\")")
+        );
     }
 }

@@ -40,6 +40,8 @@ pub trait SqlDialect {
 
     fn add_primary_index(&self, columns: &Vec<String>) -> String;
 
+    fn add_unique_constraint(&self, constraint_name: &str, columns: &Vec<String>) -> String;
+
     fn column_type(&self, ct: &ColumnType) -> String;
 
     fn constraints(&self, constraints: &Constraints) -> String;

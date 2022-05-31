@@ -13,6 +13,8 @@ pub trait IndexAdd {
     );
 
     fn add_primary_index(&mut self, columns: Vec<&str>);
+
+    fn add_unique_constraint(&mut self, constraint_name: &str, columns: Vec<&str>);
 }
 
 pub trait IndexAlter {
@@ -25,6 +27,8 @@ pub trait IndexAlter {
     );
 
     fn add_primary_index(&mut self, columns: Vec<&str>);
+
+    fn add_unique_constraint(&mut self, constraint_name: &str, columns: Vec<&str>);
 }
 
 impl IndexAdd for Table {
@@ -46,6 +50,13 @@ impl IndexAdd for Table {
 
     fn add_primary_index(&mut self, columns: Vec<&str>) {
         self.idx_changes.push(Box::new(IndexAddPrimaryChange {
+            columns: columns.iter().map(|i| i.to_string()).collect(),
+        }))
+    }
+
+    fn add_unique_constraint(&mut self, constraint_name: &str, columns: Vec<&str>) {
+        self.idx_changes.push(Box::new(IndexAddUniqueChange {
+            constraint_name: constraint_name.to_string(),
             columns: columns.iter().map(|i| i.to_string()).collect(),
         }))
     }
@@ -73,6 +84,13 @@ impl IndexAlter for Table {
             columns: columns.iter().map(|i| i.to_string()).collect(),
         }))
     }
+
+    fn add_unique_constraint(&mut self, constraint_name: &str, columns: Vec<&str>) {
+        self.idx_changes.push(Box::new(IndexAddUniqueChange {
+            constraint_name: constraint_name.to_string(),
+            columns: columns.iter().map(|i| i.to_string()).collect(),
+        }))
+    }
 }
 
 #[derive(Debug)]
@@ -93,6 +111,12 @@ pub struct IndexAddForeignChange {
 
 #[derive(Debug)]
 pub struct IndexAddPrimaryChange {
+    columns: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct IndexAddUniqueChange {
+    constraint_name: String,
     columns: Vec<String>,
 }
 
@@ -117,5 +141,11 @@ impl Change for IndexAddForeignChange {
             self.idx_name.clone(),
             &self.add_clause,
         )
+    }
+}
+
+impl Change for IndexAddUniqueChange {
+    fn get_ddl(&self, dialect: Rc<dyn SqlDialect>) -> String {
+        dialect.add_unique_constraint(&self.constraint_name, &self.columns)
     }
 }
